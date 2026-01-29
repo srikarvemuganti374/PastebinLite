@@ -1,22 +1,34 @@
-// app/api/pastes/[id]/route.ts
 import { NextResponse } from "next/server";
-import { redis } from "@/lib/redis";
+import { redis, Paste } from "@/lib/redis";
+import { getNow } from "@/lib/time";
 
 export async function GET(
   req: Request,
-  { params }: { params: { id: string } } // ✅ not a Promise
+  { params }: { params: { id: string } }
 ) {
-  const { id } = params;
-
-  const paste = await redis.get(`paste:${id}`);
+  const key = `paste:${params.id}`;
+  const paste = await redis.get<Paste>(key);
 
   if (!paste) {
     return NextResponse.json({ error: "Paste not found" }, { status: 404 });
   }
 
+  if (paste.expiresAt && paste.expiresAt < getNow()) {
+    await redis.del(key);
+    return NextResponse.json({ error: "Paste expired" }, { status: 410 });
+  }
+
+  paste.remainingViews -= 1;
+
+  if (paste.remainingViews <= 0) {
+    await redis.del(key);
+  } else {
+    await redis.set(key, paste);
+  }
+
   return NextResponse.json({
     content: paste.content,
-    remaining_views: paste.remainingViews,
-    expires_at: paste.expiresAt,
+    remainingViews: paste.remainingViews,
+    expiresAt: paste.expiresAt,
   });
 }

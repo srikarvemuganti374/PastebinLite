@@ -1,16 +1,12 @@
-import { headers } from "next/headers";
+let fakeNow = 1700000000000;
 
-export function getNow(): number {
-  if (process.env.TEST_MODE !== "1") {
-    return Date.now();
+export function getNow() {
+  if (process.env.TEST_MODE === "true") {
+    return fakeNow;
   }
+  return Date.now();
+}
 
-  const h = headers();
-  const testNow = h.get("x-test-now-ms");
-
-  if (!testNow) {
-    return Date.now(); // fallback allowed by spec
-  }
-
-  return Number(testNow);
+export function advanceTime(ms: number) {
+  fakeNow += ms;
 }

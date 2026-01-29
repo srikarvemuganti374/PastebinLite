@@ -1,44 +1,27 @@
 import { NextResponse } from "next/server";
+import { redis, Paste } from "@/lib/redis";
 import { nanoid } from "nanoid";
-import { redis } from "@/lib/redis";
 import { getNow } from "@/lib/time";
 
 export async function POST(req: Request) {
-  const body = await req.json();
+  const { content } = await req.json();
 
-  const { content, ttl_seconds, max_views } = body;
-
-  if (!content || typeof content !== "string" || content.trim() === "") {
-    return NextResponse.json({ error: "Invalid content" }, { status: 400 });
-  }
-
-  if (ttl_seconds !== undefined && (!Number.isInteger(ttl_seconds) || ttl_seconds < 1)) {
-    return NextResponse.json({ error: "Invalid ttl_seconds" }, { status: 400 });
-  }
-
-  if (max_views !== undefined && (!Number.isInteger(max_views) || max_views < 1)) {
-    return NextResponse.json({ error: "Invalid max_views" }, { status: 400 });
+  if (!content) {
+    return NextResponse.json({ error: "Content required" }, { status: 400 });
   }
 
   const id = nanoid(8);
-  const now = getNow();
 
-  const expiresAt = ttl_seconds ? now + ttl_seconds * 1000 : null;
+  const paste: Paste = {
+    content,
+    remainingViews: 10,
+    expiresAt: getNow() + 60 * 60 * 1000, // 1 hour
+  };
 
-  await redis.set(
-    `paste:${id}`,
-    {
-      content,
-      expiresAt,
-      remainingViews: max_views ?? null,
-    }
-  );
-
-  const baseUrl =
-    process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000";
+  await redis.set(`paste:${id}`, paste);
 
   return NextResponse.json({
     id,
-    url: `${baseUrl}/p/${id}`,
+    url: `/p/${id}`,
   });
 }

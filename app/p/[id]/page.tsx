@@ -1,36 +1,45 @@
 import { notFound } from "next/navigation";
 import { redis } from "@/lib/redis";
 
-type PasteData = {
+type Paste = {
   content: string;
   expiresAt: number | null;
   remainingViews: number | null;
 };
 
-export default async function PastePage({
-  params,
-}: {
+type Props = {
   params: Promise<{ id: string }>;
-}) {
+};
+
+export default async function PastePage({ params }: Props) {
+  // ✅ unwrap params FIRST
   const { id } = await params;
 
-  const data = await redis.get<PasteData>(`paste:${id}`);
+  const paste = await redis.get<Paste>(`paste:${id}`);
 
-  if (!data) {
+  if (!paste) {
     notFound();
   }
 
   return (
-    <main style={{ padding: "20px" }}>
+    <div style={{ padding: 20 }}>
       <h1>Paste</h1>
 
-      {/* ✅ Render ONLY the string */}
-      <pre>{data.content}</pre>
+      <pre
+        style={{
+          whiteSpace: "pre-wrap",
+          wordBreak: "break-word",
+          background: "#090808",
+          padding: 12,
+          borderRadius: 6,
+        }}
+      >
+        {paste.content}
+      </pre>
 
-      {/* Optional metadata display */}
-      {data.remainingViews !== null && (
-        <p>Remaining views: {data.remainingViews}</p>
+      {paste.remainingViews !== null && (
+        <p>Remaining views: {paste.remainingViews}</p>
       )}
-    </main>
+    </div>
   );
 }

@@ -4,9 +4,9 @@ import { useState } from "react";
 
 export default function Home() {
   const [content, setContent] = useState("");
-  const [url, setUrl] = useState("");
+  const [fullUrl, setFullUrl] = useState("");
 
-  async function submit() {
+  async function createPaste() {
     const res = await fetch("/api/pastes", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -14,35 +14,43 @@ export default function Home() {
     });
 
     const data = await res.json();
-    setUrl(data.url);
+
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL!;
+    setFullUrl(baseUrl + data.url);
   }
 
   return (
-    <main style={{ padding: "20px", maxWidth: "600px" }}>
+    <div style={{ padding: 20 }}>
       <h1>Pastebin Lite</h1>
 
       <textarea
-        placeholder="Type your paste here..."
+        rows={10}
+        cols={60}
         value={content}
         onChange={(e) => setContent(e.target.value)}
-        rows={10}
-        style={{
-          width: "100%",
-          padding: "10px",
-          fontSize: "16px",
-        }}
+        placeholder="Enter your paste here"
       />
 
       <br /><br />
+      <button onClick={createPaste}>Create Paste</button>
 
-      <button onClick={submit}>Create Paste</button>
+      {fullUrl && (
+        <div style={{ marginTop: 20 }}>
+          <p>Sharable URL:</p>
 
-      {url && (
-        <p>
-          Shareable URL: <br />
-          <strong>{url}</strong>
-        </p>
+          <a href={fullUrl} target="_blank" rel="noopener noreferrer">
+            {fullUrl}
+          </a>
+
+          <br /><br />
+
+          <button
+            onClick={() => navigator.clipboard.writeText(fullUrl)}
+          >
+            Copy Link
+          </button>
+        </div>
       )}
-    </main>
+    </div>
   );
 }
