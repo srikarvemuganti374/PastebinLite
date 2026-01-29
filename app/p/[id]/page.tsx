@@ -12,7 +12,6 @@ type Props = {
 };
 
 export default async function PastePage({ params }: Props) {
-  // ✅ unwrap params FIRST
   const { id } = await params;
 
   const paste = await redis.get<Paste>(`paste:${id}`);
